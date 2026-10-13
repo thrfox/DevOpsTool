@@ -7,6 +7,7 @@ from pathlib import Path
 import re
 import shutil
 import subprocess
+import sys
 import tarfile
 import tempfile
 import zipfile
@@ -20,6 +21,9 @@ def run(*args, cwd=ROOT):
 
 
 def main():
+    # Windows 构建机默认编码可能无法输出中文，日志统一使用 UTF-8。
+    sys.stdout.reconfigure(encoding='utf-8')
+    sys.stderr.reconfigure(encoding='utf-8')
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--version', required=True)
     parser.add_argument('--platform', choices=['windows', 'linux', 'darwin'], required=True)

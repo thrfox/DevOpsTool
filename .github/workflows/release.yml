@@ -38,6 +38,7 @@ jobs:
         shell: bash
     env:
       CGO_ENABLED: '1'
+      PYTHONUTF8: '1'
       RELEASE_REF: ${{ github.ref_name }}
       RELEASE_REF_TYPE: ${{ github.ref_type }}
       TARGET_PLATFORM: ${{ matrix.platform }}
