@@ -68,6 +68,8 @@ jobs:
           $compilerBin = Join-Path $env:MSYS2_LOCATION 'ucrt64/bin'
           $compilerBin | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           "CC=$(Join-Path $compilerBin 'gcc.exe')" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "GOPATH=$(go env GOPATH)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "GOCACHE=$(go env GOCACHE)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
       - name: 安装 Linux 图形库
         if: runner.os == 'Linux'
         run: |

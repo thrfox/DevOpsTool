@@ -56,9 +56,9 @@ def main():
     else:
         run('go', 'run', './scripts/icons')
         if args.platform == 'linux':
-            run('xvfb-run', '-a', 'go', 'test', './...')
+            run('xvfb-run', '-a', 'go', 'test', '-trimpath', './...')
         else:
-            run('go', 'test', './...')
+            run('go', 'test', '-trimpath', './...')
         binary = ROOT / 'dist/DevOpsTool'
         run('go', 'build', '-trimpath', '-ldflags',
             f'-s -w -X devopstool/internal/buildinfo.Version={version}',

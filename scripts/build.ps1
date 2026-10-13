@@ -19,7 +19,7 @@ if (!(Test-Path -LiteralPath $taskRsrc)) {
 & $taskRsrc -arch amd64 -ico internal/ui/assets/app.ico -o cmd/devopstool/icon_windows_amd64.syso
 if ($LASTEXITCODE -ne 0) { throw 'Windows 图标嵌入失败' }
 if ($Test) {
-    & $taskGo test ./...
+    & $taskGo test -trimpath ./...
     if ($LASTEXITCODE -ne 0) { throw '测试失败' }
 }
 New-Item -ItemType Directory -Force 'dist' | Out-Null
