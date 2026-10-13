@@ -69,6 +69,7 @@ def main():
             # 使用固定版本的官方打包工具生成带图标的 macOS 应用包。
             fyne = Path(subprocess.check_output(['go', 'env', 'GOPATH'], text=True).strip()) / 'bin/fyne'
             run(str(fyne), 'package', '-os', 'darwin', '-name', 'DevOpsTool',
+                '-src', str(ROOT / 'cmd/devopstool'),
                 '-appID', 'cn.azukin.devopstool', '-appVersion', version.split('-')[0].rsplit('.', 1)[0],
                 '-appBuild', os.environ.get('GITHUB_RUN_NUMBER', '1'),
                 '-icon', str(ROOT / 'internal/ui/assets/app.png'),
