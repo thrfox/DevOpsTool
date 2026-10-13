@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 
+	"devopstool/internal/buildinfo"
 	"devopstool/internal/config"
 	"devopstool/internal/network"
 	"devopstool/internal/tools"
@@ -60,7 +61,7 @@ func (d *Desktop) ShowAndRun() {
 
 func (d *Desktop) build() {
 	title := widget.NewLabelWithStyle("开发运维工具箱", fyne.TextAlignLeading, fyne.TextStyle{Bold: true})
-	subtitle := widget.NewLabel("本地工具 · v0.3.0")
+	subtitle := widget.NewLabel("本地工具 · v" + buildinfo.Version)
 	pages := []struct {
 		name  string
 		icon  fyne.Resource

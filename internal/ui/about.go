@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"devopstool/internal/buildinfo"
 	_ "embed"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
@@ -19,6 +20,6 @@ func (d *Desktop) about() {
 		view.Resize(fyne.NewSize(900, 650))
 		view.Show()
 	})
-	view := dialog.NewCustom("关于 DevOpsTool", "关闭", container.NewVBox(note("开发运维工具箱 v0.3.0\nGo + Fyne 跨平台桌面程序\n图片、文本及配置在本地处理。\n网络调试按用户输入的目标发起请求。"), licenses), d.Window)
+	view := dialog.NewCustom("关于 DevOpsTool", "关闭", container.NewVBox(note("开发运维工具箱 v"+buildinfo.Version+"\nGo + Fyne 跨平台桌面程序\n图片、文本及配置在本地处理。\n网络调试按用户输入的目标发起请求。"), licenses), d.Window)
 	view.Show()
 }

@@ -1,0 +1,125 @@
+name: 桌面构建与标签发布
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: 构建 ${{ matrix.platform }}-${{ matrix.arch }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: windows-2022
+            platform: windows
+            arch: amd64
+          - runner: ubuntu-22.04
+            platform: linux
+            arch: amd64
+          - runner: macos-15-intel
+            platform: darwin
+            arch: amd64
+          - runner: macos-15
+            platform: darwin
+            arch: arm64
+    defaults:
+      run:
+        shell: bash
+    env:
+      CGO_ENABLED: '1'
+      RELEASE_REF: ${{ github.ref_name }}
+      RELEASE_REF_TYPE: ${{ github.ref_type }}
+      TARGET_PLATFORM: ${{ matrix.platform }}
+      TARGET_ARCH: ${{ matrix.arch }}
+    steps:
+      - name: 获取源码
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: 安装 Go
+        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version: '1.27.2'
+          cache: true
+      - name: 安装 Windows C 编译器
+        if: runner.os == 'Windows'
+        id: msys2
+        uses: msys2/setup-msys2@ec48f7c5447b3140e2b088413ae3a55687bccb6e # v2
+        with:
+          msystem: UCRT64
+          install: mingw-w64-ucrt-x86_64-gcc
+      - name: 配置 Windows 编译器路径
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          MSYS2_LOCATION: ${{ steps.msys2.outputs.msys2-location }}
+        run: |
+          $compilerBin = Join-Path $env:MSYS2_LOCATION 'ucrt64/bin'
+          $compilerBin | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          "CC=$(Join-Path $compilerBin 'gcc.exe')" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+      - name: 安装 Linux 图形库
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc pkg-config libgl1-mesa-dev xorg-dev libx11-dev xvfb
+      - name: 安装 macOS 打包工具
+        if: runner.os == 'macOS'
+        run: go install fyne.io/tools/cmd/fyne@v1.7.3
+      - name: 测试、编译和打包
+        run: |
+          if [[ "$RELEASE_REF_TYPE" == "tag" ]]; then
+            version="$RELEASE_REF"
+          else
+            version="$(sed -n 's/^Version = "\([^"]*\)"/\1/p' FyneApp.toml)"
+          fi
+          python scripts/release.py --version "$version" --platform "$TARGET_PLATFORM" --arch "$TARGET_ARCH"
+      - name: 保存构建成果物
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: DevOpsTool-${{ matrix.platform }}-${{ matrix.arch }}
+          path: dist/release/*
+          if-no-files-found: error
+          retention-days: 14
+
+  release:
+    name: 发布标签成果物
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      RELEASE_TAG: ${{ github.ref_name }}
+    steps:
+      - name: 汇总所有平台成果物
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        with:
+          pattern: DevOpsTool-*
+          merge-multiple: true
+          path: release
+      - name: 生成校验文件并创建 Release
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd release
+          sha256sum DevOpsTool-* > SHA256SUMS.txt
+          flags=(--verify-tag --title "$RELEASE_TAG" --generate-notes)
+          if [[ "$RELEASE_TAG" == *-* ]]; then
+            flags+=(--prerelease)
+          fi
+          # 已发布版本不覆盖；重跑会明确失败，防止同标签成果物悄然变更。
+          gh release create "$RELEASE_TAG" "${flags[@]}" DevOpsTool-* SHA256SUMS.txt
